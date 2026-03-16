@@ -7,16 +7,16 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 app = Flask(__name__)
 CORS(app)
 
+# 这里只保留 api/download 路由，不要再写 '/' 路由了
 @app.route('/api/download', methods=['POST'])
 def download():
     raw_url = request.json.get('url', '')
     if not raw_url:
         return jsonify({"status": "error", "message": "链接为空"})
 
-    # 核心优化：清洗链接，去掉问号后面的追踪参数，大幅提升解析成功率！
+    # 清洗链接，大幅提升解析成功率
     url = raw_url.split('?')[0]
-
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"}
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
 
     # 1. 尝试 TikWM 接口
     try:
@@ -31,7 +31,7 @@ def download():
     except Exception:
         pass
 
-    # 2. 尝试 TiklyDown 接口作备用
+    # 2. 尝试 TiklyDown 接口
     try:
         res = requests.get(f"https://api.tiklydown.eu.org/api/download?url={url}", headers=headers, timeout=8, verify=False).json()
         if 'video' in res:
