@@ -1,11 +1,18 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import requests
+import os
 import urllib3
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 app = Flask(__name__)
 CORS(app)
+
+# 核心修改：让 Python 负责显示你的 index.html
+@app.route('/')
+def home():
+    # 尝试从根目录读取 index.html
+    return send_from_directory('..', 'index.html')
 
 @app.route('/api/download', methods=['POST'])
 def download():
@@ -15,7 +22,7 @@ def download():
 
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
-    # 优先尝试 TikWM 接口
+    # 尝试解析接口
     try:
         res = requests.get(f"https://www.tikwm.com/api/?url={url}", headers=headers, timeout=10, verify=False).json()
         if res.get('code') == 0:
@@ -25,20 +32,9 @@ def download():
             title = res['data'].get('title', 'tiktok_video')
             return jsonify({"status": "success", "url": v_url, "title": title[:40]})
     except Exception:
-        pass # 失败则继续尝试下一个
+        pass
 
-    # 备用尝试 TiklyDown 接口
-    try:
-        res = requests.get(f"https://api.tiklydown.eu.org/api/download?url={url}", headers=headers, timeout=10, verify=False).json()
-        if 'video' in res:
-            v_url = res['video'].get('noWatermark') or res['video'].get('url')
-            title = res.get('title', 'tiktok_video')
-            return jsonify({"status": "success", "url": v_url, "title": title[:40]})
-    except Exception:
-        return jsonify({"status": "error", "message": "云端解析彻底失败"})
+    return jsonify({"status": "error", "message": "云端解析暂不可用，请稍后再试"})
 
-    return jsonify({"status": "error", "message": "无法提取该视频"})
-
-# 适配 Vercel 的 Serverless 启动方式
 if __name__ == '__main__':
     app.run()
