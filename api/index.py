@@ -8,39 +8,166 @@ app = Flask(__name__)
 CORS(app)
 
 # ==========================================
-# 终极全栈代码：强制静默下载 + 防卡死排队
+# 终极全栈代码：UI 深度美化版 + Daiway 专属标识
+# 保持核心逻辑绝对不变
 # ==========================================
 HTML_PAGE = r"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TIKTOK MASTER - 稳定批量版</title>
+    <title>TIKTOK MASTER - Daiway 专属版</title>
     <style>
-        body { background: #0f0f0f; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 40px 20px; margin: 0; }
-        .box { background: #1a1a1a; padding: 25px; border-radius: 12px; width: 100%; max-width: 700px; border: 1px solid #333; box-shadow: 0 10px 40px rgba(0,0,0,0.6); box-sizing: border-box; }
-        h1 { text-align: center; background: linear-gradient(45deg, #00f2ea, #ff0050); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0 0 20px 0; font-size: 26px; font-weight: 800; }
-        textarea { width: 100%; height: 140px; background: #0a0a0a; border: 1px solid #444; color: #00f2ea; padding: 15px; border-radius: 8px; box-sizing: border-box; font-family: monospace; font-size: 12px; line-height: 1.5; outline: none; margin-bottom: 15px; resize: vertical; }
-        textarea:focus { border-color: #00f2ea; }
-        .btn-group { display: flex; gap: 12px; }
-        button { flex: 1; border: none; padding: 14px; color: white; font-weight: bold; border-radius: 8px; cursor: pointer; font-size: 15px; transition: 0.2s; box-sizing: border-box; }
-        .btn-parse { background: #ff0050; }
-        .btn-parse:hover { background: #d40042; }
-        .btn-dl-all { background: #00f2ea; color: #000; display: none; }
-        .btn-dl-all:hover { background: #00c4bd; }
-        #log { margin-top: 25px; width: 100%; max-width: 700px; box-sizing: border-box; }
-        .item { background: #222; padding: 15px; border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-start; border-left: 4px solid #00f2ea; box-sizing: border-box; }
-        .info { display: flex; flex-direction: column; width: 80%; padding-right: 15px; }
-        .author { font-weight: bold; color: #00f2ea; font-size: 13px; margin-bottom: 6px; }
-        .desc { font-size: 12px; color: #bbb; line-height: 1.6; word-wrap: break-word; white-space: normal; }
-        .dl-btn { background: #333; border: 1px solid #555; color: #fff; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; white-space: nowrap; align-self: center; }
-        .dl-btn:hover { background: #444; color: #00f2ea; border-color: #00f2ea; }
+        :root {
+            --primary: #00f2ea;
+            --secondary: #ff0050;
+            --bg-color: #0d0d0f;
+            --card-bg: rgba(25, 25, 30, 0.6);
+        }
+        body { 
+            background: var(--bg-color); 
+            background-image: radial-gradient(circle at top right, rgba(255,0,80,0.08), transparent 40%),
+                              radial-gradient(circle at bottom left, rgba(0,242,234,0.08), transparent 40%);
+            color: #e0e0e0; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            padding: 50px 20px; 
+            margin: 0; 
+            min-height: 100vh;
+        }
+        .box { 
+            background: var(--card-bg); 
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 35px; 
+            border-radius: 20px; 
+            width: 100%; 
+            max-width: 700px; 
+            border: 1px solid rgba(255,255,255,0.05); 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5); 
+            box-sizing: border-box; 
+        }
+        h1 { 
+            text-align: center; 
+            background: linear-gradient(135deg, var(--primary), var(--secondary)); 
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent; 
+            margin: 0 0 25px 0; 
+            font-size: 32px; 
+            font-weight: 900; 
+            letter-spacing: 1px;
+        }
+        textarea { 
+            width: 100%; 
+            height: 150px; 
+            background: rgba(0,0,0,0.4); 
+            border: 1px solid rgba(255,255,255,0.1); 
+            color: var(--primary); 
+            padding: 18px; 
+            border-radius: 12px; 
+            box-sizing: border-box; 
+            font-family: 'Courier New', Courier, monospace; 
+            font-size: 13px; 
+            line-height: 1.6; 
+            outline: none; 
+            margin-bottom: 20px; 
+            resize: vertical; 
+            transition: all 0.3s ease;
+        }
+        textarea:focus { 
+            border-color: var(--primary); 
+            box-shadow: 0 0 15px rgba(0,242,234,0.1);
+        }
+        .btn-group { display: flex; gap: 15px; }
+        button { 
+            flex: 1; 
+            border: none; 
+            padding: 16px; 
+            color: white; 
+            font-weight: bold; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            font-size: 16px; 
+            transition: all 0.3s ease; 
+            box-sizing: border-box; 
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .btn-parse { 
+            background: linear-gradient(45deg, var(--secondary), #d40042); 
+            box-shadow: 0 4px 15px rgba(255,0,80,0.25);
+        }
+        .btn-parse:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 6px 20px rgba(255,0,80,0.4);
+        }
+        .btn-dl-all { 
+            background: linear-gradient(45deg, var(--primary), #00c4bd); 
+            color: #000; 
+            display: none; 
+            box-shadow: 0 4px 15px rgba(0,242,234,0.25);
+        }
+        .btn-dl-all:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 6px 20px rgba(0,242,234,0.4);
+        }
+        #log { margin-top: 30px; width: 100%; max-width: 700px; box-sizing: border-box; }
+        .item { 
+            background: rgba(30, 30, 35, 0.7); 
+            backdrop-filter: blur(8px);
+            padding: 18px; 
+            border-radius: 12px; 
+            margin-bottom: 15px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-left: 4px solid var(--primary); 
+            box-sizing: border-box; 
+            border-top: 1px solid rgba(255,255,255,0.03);
+            border-right: 1px solid rgba(255,255,255,0.03);
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            transition: transform 0.2s ease;
+        }
+        .item:hover { transform: translateX(2px); }
+        .info { display: flex; flex-direction: column; width: 78%; padding-right: 15px; }
+        .author { font-weight: bold; color: var(--primary); font-size: 14px; margin-bottom: 8px; }
+        .desc { font-size: 13px; color: #ccc; line-height: 1.6; word-wrap: break-word; white-space: normal; }
+        .dl-btn { 
+            background: #2a2a2a; 
+            border: 1px solid #444; 
+            color: #fff; 
+            padding: 10px 18px; 
+            border-radius: 8px; 
+            text-decoration: none; 
+            font-size: 13px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            transition: all 0.2s ease; 
+            white-space: nowrap; 
+            text-transform: none;
+            letter-spacing: normal;
+        }
+        .dl-btn:hover { background: #333; color: var(--primary); border-color: var(--primary); }
         .dl-btn:disabled { background: #222; color: #666; cursor: not-allowed; border-color: #333; }
+        
+        /* 专属页脚样式 */
+        .footer {
+            margin-top: auto;
+            padding-top: 50px;
+            padding-bottom: 20px;
+            text-align: center;
+            color: #666;
+            font-size: 13px;
+            letter-spacing: 1px;
+        }
+        .footer span { color: var(--primary); font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="box">
-        <h1>TIKTOK MASTER Cloud</h1>
+        <h1>TIKTOK MASTER</h1>
         <textarea id="links" placeholder="在这里粘贴 TikTok 链接，支持批量输入，每行一个..."></textarea>
         <div class="btn-group">
             <button class="btn-parse" onclick="startCloudParse()">🔥 批量极速解析</button>
@@ -48,6 +175,10 @@ HTML_PAGE = r"""<!DOCTYPE html>
         </div>
     </div>
     <div id="log"></div>
+    
+    <div class="footer">
+        Powered by Vercel Serverless | <span>Daiway 专属定制</span> | Version 2.1.0 Cloud
+    </div>
 
     <script>
         let parsedVideos = [];
@@ -62,7 +193,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
             if (lines.length === 0) return alert('请先粘贴视频链接！');
             
             parsedVideos = []; 
-            log.innerHTML = '<div style="color:#888; text-align:center; font-size: 13px; margin-bottom: 10px;">🚀 服务器正在拼命解析中，请稍候...</div>';
+            log.innerHTML = '<div style="color:#888; text-align:center; font-size: 14px; margin-bottom: 15px;">🚀 引擎全开，正在深度解析中...</div>';
             dlAllBtn.style.display = 'none';
 
             for (let i = 0; i < lines.length; i++) {
@@ -88,7 +219,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
                                 <span class="author">👤 ${data.author}</span>
                                 <span class="desc">${data.title}</span>
                             </div>
-                            <button id="${btnId}" onclick="triggerDownloadByIndex(${currentIndex})" class="dl-btn">强制下载</button>
+                            <button id="${btnId}" onclick="triggerDownloadByIndex(${currentIndex})" class="dl-btn">静默下载</button>
                         `;
                     } else {
                         div.style.borderLeftColor = '#ff4d4d';
@@ -99,15 +230,15 @@ HTML_PAGE = r"""<!DOCTYPE html>
                     const err = document.createElement('div');
                     err.className = 'item';
                     err.style.borderLeftColor = '#ffcc00';
-                    err.innerHTML = `<span style="color:#ffcc00; font-size: 13px;">⚠️ 网络异常或该链接格式无法识别</span>`;
+                    err.innerHTML = `<span style="color:#ffcc00; font-size: 13px;">⚠️ 网络波动或链接格式异常</span>`;
                     log.appendChild(err);
                 }
 
                 if (i < lines.length - 1) {
                     const waitDiv = document.createElement('div');
-                    waitDiv.innerHTML = '<span style="color:#666; font-size: 12px;">⏳ 防封控安全缓冲 2 秒...</span>';
+                    waitDiv.innerHTML = '<span style="color:#666; font-size: 13px;">⏳ 防封控安全缓冲 2 秒...</span>';
                     waitDiv.style.textAlign = 'center';
-                    waitDiv.style.marginBottom = '12px';
+                    waitDiv.style.marginBottom = '15px';
                     log.appendChild(waitDiv);
                     await new Promise(resolve => setTimeout(resolve, 2000)); 
                     waitDiv.remove(); 
@@ -116,43 +247,39 @@ HTML_PAGE = r"""<!DOCTYPE html>
 
             if (parsedVideos.length > 0) {
                 dlAllBtn.style.display = 'block';
-                log.firstChild.innerHTML = `<span style="color:#10b981; font-weight:bold;">✅ 解析完成！共成功提取 ${parsedVideos.length} 个视频。</span>`;
+                log.firstChild.innerHTML = `<span style="color:#10b981; font-weight:bold; font-size: 14px;">✅ 解析完成！共成功提取 ${parsedVideos.length} 个高清视频源。</span>`;
             } else {
-                log.firstChild.innerHTML = `<span style="color:#ff4d4d; font-weight:bold;">❌ 解析结束，没有成功提取到视频。</span>`;
+                log.firstChild.innerHTML = `<span style="color:#ff4d4d; font-weight:bold; font-size: 14px;">❌ 解析结束，暂未提取到有效视频。</span>`;
             }
         }
 
-        // 核心：强制数据流下载逻辑
         async function triggerDownloadByIndex(index) {
             const video = parsedVideos[index];
             const btn = document.getElementById(video.id);
             
             if (btn) {
                 btn.innerText = "⏳ 抽取中...";
-                btn.style.background = "#ffcc00";
-                btn.style.color = "#000";
+                btn.style.background = "linear-gradient(45deg, #f59e0b, #d97706)";
+                btn.style.color = "#fff";
+                btn.style.borderColor = "#d97706";
                 btn.disabled = true;
             }
 
             try {
-                // 尝试跨域拉取数据流
                 let res = await fetch(video.url).catch(() => null);
                 
-                // 如果遭遇严格跨域拦截，启用公益代理强行拉取
                 if (!res || !res.ok) {
                     res = await fetch('https://corsproxy.io/?' + encodeURIComponent(video.url));
                 }
                 
-                // 转为 Blob 二进制对象
                 const blob = await res.blob();
                 const blobUrl = window.URL.createObjectURL(blob);
                 
                 const a = document.createElement('a');
                 a.style.display = 'none';
                 a.href = blobUrl;
-                // 清洗文件名中的非法符号
                 let safeTitle = video.title.replace(/[\\/:*?"<>|]/g, "").substring(0, 40);
-                a.download = (safeTitle || "tiktok_video") + ".mp4";
+                a.download = (safeTitle || "tiktok_master_video") + ".mp4";
                 
                 document.body.appendChild(a);
                 a.click();
@@ -161,13 +288,12 @@ HTML_PAGE = r"""<!DOCTYPE html>
                 window.URL.revokeObjectURL(blobUrl);
 
                 if (btn) {
-                    btn.innerText = "✅ 已保存";
-                    btn.style.background = "#10b981";
-                    btn.style.color = "#fff";
+                    btn.innerText = "✅ 已存本地";
+                    btn.style.background = "linear-gradient(45deg, #10b981, #059669)";
+                    btn.style.borderColor = "#059669";
                 }
             } catch (error) {
-                console.error("数据流下载失败，回退旧方案", error);
-                // 极低概率的失败备用案：弹出新窗口
+                console.error("流抽取失败，执行备用方案", error);
                 const a = document.createElement('a');
                 a.href = video.url;
                 a.target = '_blank';
@@ -178,7 +304,6 @@ HTML_PAGE = r"""<!DOCTYPE html>
                 if (btn) {
                     btn.innerText = "⚠️ 需手动保存";
                     btn.style.background = "#444";
-                    btn.style.color = "#fff";
                 }
             }
             if(btn) btn.disabled = false;
@@ -188,16 +313,15 @@ HTML_PAGE = r"""<!DOCTYPE html>
             if (parsedVideos.length === 0) return;
             
             const dlAllBtn = document.getElementById('dlAllBtn');
-            dlAllBtn.innerText = "⏳ 正在依次写入硬盘，请勿关闭网页...";
+            dlAllBtn.innerText = "⏳ 正在高速写入本地，请勿关闭页面...";
             dlAllBtn.disabled = true;
 
             for (let i = 0; i < parsedVideos.length; i++) {
                 await triggerDownloadByIndex(i);
-                // 强制排队：下完一个等 1.5 秒再下另一个，防止浏览器崩盘
                 await new Promise(resolve => setTimeout(resolve, 1500)); 
             }
             
-            dlAllBtn.innerText = "✅ 全部下载完毕";
+            dlAllBtn.innerText = "✅ 批量下载任务完成";
             setTimeout(() => {
                 dlAllBtn.innerText = "⬇️ 一键下载全部";
                 dlAllBtn.disabled = false;
