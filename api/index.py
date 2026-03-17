@@ -8,7 +8,7 @@ app = Flask(__name__)
 CORS(app)
 
 # ==========================================
-# 终极全栈代码：UI 深度美化版 + Daiway 专属标识
+# 终极全栈代码：带专属密码锁 + UI 深度美化
 # 保持核心逻辑绝对不变
 # ==========================================
 HTML_PAGE = r"""<!DOCTYPE html>
@@ -37,6 +37,52 @@ HTML_PAGE = r"""<!DOCTYPE html>
             margin: 0; 
             min-height: 100vh;
         }
+        
+        /* --- 密码锁屏专属样式 --- */
+        #lock-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: var(--bg-color);
+            background-image: radial-gradient(circle at center, rgba(0,242,234,0.1), transparent 60%);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+        .lock-box {
+            background: var(--card-bg);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            padding: 40px; border-radius: 20px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            width: 90%; max-width: 380px;
+        }
+        .lock-box h2 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+            background: linear-gradient(45deg, var(--primary), #fff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .lock-hint { color: #888; font-size: 13px; margin-bottom: 25px; letter-spacing: 1px;}
+        .lock-input {
+            width: 100%; padding: 15px; background: rgba(0,0,0,0.5);
+            border: 1px solid #444; color: var(--primary);
+            border-radius: 10px; font-size: 20px; text-align: center;
+            box-sizing: border-box; outline: none; transition: 0.3s;
+            letter-spacing: 5px; margin-bottom: 20px; font-weight: bold;
+        }
+        .lock-input:focus { border-color: var(--primary); box-shadow: 0 0 15px rgba(0,242,234,0.2); }
+        .lock-btn {
+            width: 100%; padding: 14px; background: linear-gradient(45deg, var(--primary), #00c4bd);
+            color: #000; font-weight: bold; border: none; border-radius: 10px;
+            font-size: 16px; cursor: pointer; transition: 0.3s;
+        }
+        .lock-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,242,234,0.3); }
+        .lock-error { color: #ff4d4d; font-size: 13px; margin-top: 15px; height: 18px; }
+
+        /* --- 工作台样式 --- */
         .box { 
             background: var(--card-bg); 
             backdrop-filter: blur(12px);
@@ -76,58 +122,24 @@ HTML_PAGE = r"""<!DOCTYPE html>
             resize: vertical; 
             transition: all 0.3s ease;
         }
-        textarea:focus { 
-            border-color: var(--primary); 
-            box-shadow: 0 0 15px rgba(0,242,234,0.1);
-        }
+        textarea:focus { border-color: var(--primary); box-shadow: 0 0 15px rgba(0,242,234,0.1); }
         .btn-group { display: flex; gap: 15px; }
         button { 
-            flex: 1; 
-            border: none; 
-            padding: 16px; 
-            color: white; 
-            font-weight: bold; 
-            border-radius: 12px; 
-            cursor: pointer; 
-            font-size: 16px; 
-            transition: all 0.3s ease; 
-            box-sizing: border-box; 
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            flex: 1; border: none; padding: 16px; color: white; font-weight: bold; 
+            border-radius: 12px; cursor: pointer; font-size: 16px; transition: all 0.3s ease; 
+            box-sizing: border-box; text-transform: uppercase; letter-spacing: 0.5px;
         }
-        .btn-parse { 
-            background: linear-gradient(45deg, var(--secondary), #d40042); 
-            box-shadow: 0 4px 15px rgba(255,0,80,0.25);
-        }
-        .btn-parse:hover { 
-            transform: translateY(-2px); 
-            box-shadow: 0 6px 20px rgba(255,0,80,0.4);
-        }
-        .btn-dl-all { 
-            background: linear-gradient(45deg, var(--primary), #00c4bd); 
-            color: #000; 
-            display: none; 
-            box-shadow: 0 4px 15px rgba(0,242,234,0.25);
-        }
-        .btn-dl-all:hover { 
-            transform: translateY(-2px); 
-            box-shadow: 0 6px 20px rgba(0,242,234,0.4);
-        }
+        .btn-parse { background: linear-gradient(45deg, var(--secondary), #d40042); box-shadow: 0 4px 15px rgba(255,0,80,0.25); }
+        .btn-parse:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,0,80,0.4); }
+        .btn-dl-all { background: linear-gradient(45deg, var(--primary), #00c4bd); color: #000; display: none; box-shadow: 0 4px 15px rgba(0,242,234,0.25); }
+        .btn-dl-all:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,242,234,0.4); }
         #log { margin-top: 30px; width: 100%; max-width: 700px; box-sizing: border-box; }
         .item { 
-            background: rgba(30, 30, 35, 0.7); 
-            backdrop-filter: blur(8px);
-            padding: 18px; 
-            border-radius: 12px; 
-            margin-bottom: 15px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            border-left: 4px solid var(--primary); 
-            box-sizing: border-box; 
-            border-top: 1px solid rgba(255,255,255,0.03);
-            border-right: 1px solid rgba(255,255,255,0.03);
-            border-bottom: 1px solid rgba(255,255,255,0.03);
+            background: rgba(30, 30, 35, 0.7); backdrop-filter: blur(8px);
+            padding: 18px; border-radius: 12px; margin-bottom: 15px; display: flex; 
+            justify-content: space-between; align-items: center; border-left: 4px solid var(--primary); 
+            box-sizing: border-box; border-top: 1px solid rgba(255,255,255,0.03);
+            border-right: 1px solid rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.03);
             transition: transform 0.2s ease;
         }
         .item:hover { transform: translateX(2px); }
@@ -135,37 +147,34 @@ HTML_PAGE = r"""<!DOCTYPE html>
         .author { font-weight: bold; color: var(--primary); font-size: 14px; margin-bottom: 8px; }
         .desc { font-size: 13px; color: #ccc; line-height: 1.6; word-wrap: break-word; white-space: normal; }
         .dl-btn { 
-            background: #2a2a2a; 
-            border: 1px solid #444; 
-            color: #fff; 
-            padding: 10px 18px; 
-            border-radius: 8px; 
-            text-decoration: none; 
-            font-size: 13px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            transition: all 0.2s ease; 
-            white-space: nowrap; 
-            text-transform: none;
-            letter-spacing: normal;
+            background: #2a2a2a; border: 1px solid #444; color: #fff; padding: 10px 18px; 
+            border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: bold; 
+            cursor: pointer; transition: all 0.2s ease; white-space: nowrap; text-transform: none; letter-spacing: normal;
         }
         .dl-btn:hover { background: #333; color: var(--primary); border-color: var(--primary); }
         .dl-btn:disabled { background: #222; color: #666; cursor: not-allowed; border-color: #333; }
         
-        /* 专属页脚样式 */
         .footer {
-            margin-top: auto;
-            padding-top: 50px;
-            padding-bottom: 20px;
-            text-align: center;
-            color: #666;
-            font-size: 13px;
-            letter-spacing: 1px;
+            margin-top: auto; padding-top: 50px; padding-bottom: 20px;
+            text-align: center; color: #666; font-size: 13px; letter-spacing: 1px;
         }
         .footer span { color: var(--primary); font-weight: bold; }
     </style>
 </head>
 <body>
+
+    <!-- 专属密码锁屏 -->
+    <div id="lock-screen">
+        <div class="lock-box">
+            <h2>🔒 专属工具验证</h2>
+            <div class="lock-hint">口令提示：一个发财佬发发发</div>
+            <input type="password" id="pwd" class="lock-input" placeholder="请输入口令" onkeypress="if(event.keyCode===13) checkPwd()">
+            <button class="lock-btn" onclick="checkPwd()">解锁工作台</button>
+            <div id="lock-error" class="lock-error"></div>
+        </div>
+    </div>
+
+    <!-- 核心工作台 -->
     <div class="box">
         <h1>TIKTOK MASTER</h1>
         <textarea id="links" placeholder="在这里粘贴 TikTok 链接，支持批量输入，每行一个..."></textarea>
@@ -176,11 +185,38 @@ HTML_PAGE = r"""<!DOCTYPE html>
     </div>
     <div id="log"></div>
     
+    <!-- 底部专属标识与版本号 -->
     <div class="footer">
-        Powered by Vercel Serverless | <span>Daiway 专属定制</span> | Version 2.1.0 Cloud
+        Powered by Vercel Serverless | <span>Daiway 专属定制</span> | Version 2.2.0 Pro
     </div>
 
     <script>
+        // --- 密码锁验证逻辑 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // 如果本地缓存中存有凭证，直接隐藏密码锁
+            if (localStorage.getItem('daiway_vip_auth') === '888') {
+                document.getElementById('lock-screen').style.display = 'none';
+            }
+        });
+
+        function checkPwd() {
+            const pwd = document.getElementById('pwd').value;
+            const errorDiv = document.getElementById('lock-error');
+            
+            if (pwd === '888') {
+                // 验证成功，写入本地缓存
+                localStorage.setItem('daiway_vip_auth', '888');
+                const lockScreen = document.getElementById('lock-screen');
+                lockScreen.style.opacity = '0'; // 触发淡出动画
+                setTimeout(() => { lockScreen.style.display = 'none'; }, 500);
+            } else {
+                errorDiv.innerText = '❌ 专属口令错误，无法访问';
+                document.getElementById('pwd').value = ''; // 清空输入框
+                setTimeout(() => { errorDiv.innerText = ''; }, 2000); // 2秒后清除错误提示
+            }
+        }
+
+        // --- 核心解析与下载逻辑 (保持不变) ---
         let parsedVideos = [];
         let btnCounter = 0;
 
@@ -267,11 +303,9 @@ HTML_PAGE = r"""<!DOCTYPE html>
 
             try {
                 let res = await fetch(video.url).catch(() => null);
-                
                 if (!res || !res.ok) {
                     res = await fetch('https://corsproxy.io/?' + encodeURIComponent(video.url));
                 }
-                
                 const blob = await res.blob();
                 const blobUrl = window.URL.createObjectURL(blob);
                 
