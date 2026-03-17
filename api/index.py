@@ -8,14 +8,14 @@ app = Flask(__name__)
 CORS(app)
 
 # ==========================================
-# 终极杀手锏：将前端网页直接嵌入后端，彻底消灭 404！
+# 终极全栈代码：强制静默下载 + 防卡死排队
 # ==========================================
 HTML_PAGE = r"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TIKTOK MASTER - 终极稳定版</title>
+    <title>TIKTOK MASTER - 稳定批量版</title>
     <style>
         body { background: #0f0f0f; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 40px 20px; margin: 0; }
         .box { background: #1a1a1a; padding: 25px; border-radius: 12px; width: 100%; max-width: 700px; border: 1px solid #333; box-shadow: 0 10px 40px rgba(0,0,0,0.6); box-sizing: border-box; }
@@ -35,6 +35,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
         .desc { font-size: 12px; color: #bbb; line-height: 1.6; word-wrap: break-word; white-space: normal; }
         .dl-btn { background: #333; border: 1px solid #555; color: #fff; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; white-space: nowrap; align-self: center; }
         .dl-btn:hover { background: #444; color: #00f2ea; border-color: #00f2ea; }
+        .dl-btn:disabled { background: #222; color: #666; cursor: not-allowed; border-color: #333; }
     </style>
 </head>
 <body>
@@ -50,6 +51,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
 
     <script>
         let parsedVideos = [];
+        let btnCounter = 0;
 
         async function startCloudParse() {
             const area = document.getElementById('links');
@@ -60,10 +62,11 @@ HTML_PAGE = r"""<!DOCTYPE html>
             if (lines.length === 0) return alert('请先粘贴视频链接！');
             
             parsedVideos = []; 
-            log.innerHTML = '<div style="color:#888; text-align:center; font-size: 13px;">🚀 服务器正在拼命解析中，请稍候...</div>';
+            log.innerHTML = '<div style="color:#888; text-align:center; font-size: 13px; margin-bottom: 10px;">🚀 服务器正在拼命解析中，请稍候...</div>';
             dlAllBtn.style.display = 'none';
 
-            for (let url of lines) {
+            for (let i = 0; i < lines.length; i++) {
+                let url = lines[i];
                 try {
                     const response = await fetch('/api/download', {
                         method: 'POST',
@@ -75,13 +78,17 @@ HTML_PAGE = r"""<!DOCTYPE html>
                     div.className = 'item';
                     
                     if (data.status === 'success') {
-                        parsedVideos.push(data.url);
+                        btnCounter++;
+                        const btnId = 'dl-btn-' + btnCounter;
+                        parsedVideos.push({ url: data.url, title: data.title, id: btnId });
+                        const currentIndex = parsedVideos.length - 1;
+
                         div.innerHTML = `
                             <div class="info">
                                 <span class="author">👤 ${data.author}</span>
                                 <span class="desc">${data.title}</span>
                             </div>
-                            <button onclick="triggerDownload('${data.url}')" class="dl-btn">下载视频</button>
+                            <button id="${btnId}" onclick="triggerDownloadByIndex(${currentIndex})" class="dl-btn">强制下载</button>
                         `;
                     } else {
                         div.style.borderLeftColor = '#ff4d4d';
@@ -95,33 +102,106 @@ HTML_PAGE = r"""<!DOCTYPE html>
                     err.innerHTML = `<span style="color:#ffcc00; font-size: 13px;">⚠️ 网络异常或该链接格式无法识别</span>`;
                     log.appendChild(err);
                 }
+
+                if (i < lines.length - 1) {
+                    const waitDiv = document.createElement('div');
+                    waitDiv.innerHTML = '<span style="color:#666; font-size: 12px;">⏳ 防封控安全缓冲 2 秒...</span>';
+                    waitDiv.style.textAlign = 'center';
+                    waitDiv.style.marginBottom = '12px';
+                    log.appendChild(waitDiv);
+                    await new Promise(resolve => setTimeout(resolve, 2000)); 
+                    waitDiv.remove(); 
+                }
             }
 
             if (parsedVideos.length > 0) {
                 dlAllBtn.style.display = 'block';
                 log.firstChild.innerHTML = `<span style="color:#10b981; font-weight:bold;">✅ 解析完成！共成功提取 ${parsedVideos.length} 个视频。</span>`;
+            } else {
+                log.firstChild.innerHTML = `<span style="color:#ff4d4d; font-weight:bold;">❌ 解析结束，没有成功提取到视频。</span>`;
             }
         }
 
-        function triggerDownload(url) {
-            const a = document.createElement('a');
-            a.href = url;
-            a.target = '_blank'; 
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+        // 核心：强制数据流下载逻辑
+        async function triggerDownloadByIndex(index) {
+            const video = parsedVideos[index];
+            const btn = document.getElementById(video.id);
+            
+            if (btn) {
+                btn.innerText = "⏳ 抽取中...";
+                btn.style.background = "#ffcc00";
+                btn.style.color = "#000";
+                btn.disabled = true;
+            }
+
+            try {
+                // 尝试跨域拉取数据流
+                let res = await fetch(video.url).catch(() => null);
+                
+                // 如果遭遇严格跨域拦截，启用公益代理强行拉取
+                if (!res || !res.ok) {
+                    res = await fetch('https://corsproxy.io/?' + encodeURIComponent(video.url));
+                }
+                
+                // 转为 Blob 二进制对象
+                const blob = await res.blob();
+                const blobUrl = window.URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = blobUrl;
+                // 清洗文件名中的非法符号
+                let safeTitle = video.title.replace(/[\\/:*?"<>|]/g, "").substring(0, 40);
+                a.download = (safeTitle || "tiktok_video") + ".mp4";
+                
+                document.body.appendChild(a);
+                a.click();
+                
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(blobUrl);
+
+                if (btn) {
+                    btn.innerText = "✅ 已保存";
+                    btn.style.background = "#10b981";
+                    btn.style.color = "#fff";
+                }
+            } catch (error) {
+                console.error("数据流下载失败，回退旧方案", error);
+                // 极低概率的失败备用案：弹出新窗口
+                const a = document.createElement('a');
+                a.href = video.url;
+                a.target = '_blank';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                if (btn) {
+                    btn.innerText = "⚠️ 需手动保存";
+                    btn.style.background = "#444";
+                    btn.style.color = "#fff";
+                }
+            }
+            if(btn) btn.disabled = false;
         }
 
-        function downloadAll() {
+        async function downloadAll() {
             if (parsedVideos.length === 0) return;
             
-            alert(`即将触发 ${parsedVideos.length} 个视频下载。\n\n⚠️ 如果浏览器顶部提示“已拦截弹出式窗口”，请务必点击并选择“始终允许”。`);
+            const dlAllBtn = document.getElementById('dlAllBtn');
+            dlAllBtn.innerText = "⏳ 正在依次写入硬盘，请勿关闭网页...";
+            dlAllBtn.disabled = true;
+
+            for (let i = 0; i < parsedVideos.length; i++) {
+                await triggerDownloadByIndex(i);
+                // 强制排队：下完一个等 1.5 秒再下另一个，防止浏览器崩盘
+                await new Promise(resolve => setTimeout(resolve, 1500)); 
+            }
             
-            parsedVideos.forEach((url, index) => {
-                setTimeout(() => {
-                    triggerDownload(url);
-                }, index * 800); 
-            });
+            dlAllBtn.innerText = "✅ 全部下载完毕";
+            setTimeout(() => {
+                dlAllBtn.innerText = "⬇️ 一键下载全部";
+                dlAllBtn.disabled = false;
+            }, 3000);
         }
     </script>
 </body>
@@ -131,7 +211,6 @@ HTML_PAGE = r"""<!DOCTYPE html>
 
 @app.route('/')
 def home():
-    # 当访问首页时，直接返回上面写好的 HTML 代码
     return HTML_PAGE
 
 @app.route('/api/download', methods=['POST'])
@@ -140,12 +219,9 @@ def download():
     if not raw_url:
         return jsonify({"status": "error", "message": "链接为空"})
 
-    # 核心优化：清洗链接，去掉问号后面的追踪参数，大幅提升解析成功率！
     url = raw_url.split('?')[0]
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"}
-
-    # 1. 尝试 TikWM 接口
     try:
         res = requests.get(f"https://www.tikwm.com/api/?url={url}", headers=headers, timeout=8, verify=False).json()
         if res.get('code') == 0:
@@ -158,7 +234,6 @@ def download():
     except Exception:
         pass
 
-    # 2. 尝试 TiklyDown 接口作备用
     try:
         res = requests.get(f"https://api.tiklydown.eu.org/api/download?url={url}", headers=headers, timeout=8, verify=False).json()
         if 'video' in res:
@@ -169,7 +244,7 @@ def download():
     except Exception:
         return jsonify({"status": "error", "message": "云端接口均超时，请稍后重试"})
 
-    return jsonify({"status": "error", "message": "该视频可能已被删除或隐藏"})
+    return jsonify({"status": "error", "message": "该视频可能已被删除或接口失效"})
 
 if __name__ == '__main__':
     app.run()
